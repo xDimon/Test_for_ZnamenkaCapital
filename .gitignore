@@ -1,0 +1,9 @@
+# Idea family IDE
+.idea/
+
+# Cmake tools
+build/
+cmake-build-*/
+
+# File for test
+addresses.txt
