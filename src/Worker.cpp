@@ -9,6 +9,8 @@
 #include "Worker.hpp"
 #include "ConnectionManager.hpp"
 #include "AddressManager.hpp"
+#include "Shutdown.hpp"
+#include "WorkerManager.hpp"
 
 Worker::Worker()
 : _thread(run)
@@ -25,13 +27,18 @@ Worker::~Worker()
 
 void Worker::run()
 {
-	while (auto addr = ConnectionManager::getReady())
+	while (!isShutingdown())
 	{
-		addr->report();
+		WorkerManager::wait();
 
-		AddressManager::put(std::move(addr));
+		if (auto addr = ConnectionManager::getReady())
+		{
+			addr->report();
 
-		while (auto addr = AddressManager::get())
+			AddressManager::put(std::move(addr));
+		}
+
+		if (auto addr = AddressManager::get())
 		{
 			ConnectionManager::check(std::move(addr));
 		}

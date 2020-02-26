@@ -8,6 +8,7 @@
 
 #include "ConnectionManager.hpp"
 #include "Shutdown.hpp"
+#include "WorkerManager.hpp"
 #include <fcntl.h>
 #include <unistd.h>
 #include <iostream>
@@ -58,7 +59,7 @@ void ConnectionManager::check(std::shared_ptr<Address>&& addr)
 //	std::cout << oss.str();
 //	std::cout.flush();
 
-	addr->trying();
+	addr->updateTimestamp();
 
 	do
 	{
@@ -72,7 +73,7 @@ void ConnectionManager::check(std::shared_ptr<Address>&& addr)
 		close(addr->sock);
 		addr->sock = -1;
 		cm._ready.push(std::move(addr));
-		cm._conditionVariable.notify_one();
+		WorkerManager::notify();
 	}
 	else
 	{
@@ -145,7 +146,7 @@ void ConnectionManager::dispatch()
 			{
 				std::lock_guard lg(cm._readyMutex);
 				cm._ready.push(std::move(addr));
-				cm._conditionVariable.notify_one();
+				WorkerManager::notify();
 			}
 		}
 	}
@@ -153,22 +154,14 @@ void ConnectionManager::dispatch()
 
 std::shared_ptr<Address> ConnectionManager::getReady()
 {
-	std::shared_ptr<Address> addr;
-
 	auto& cm = getInstance();
 
-	while (!isShutingdown())
+	std::lock_guard lg(cm._readyMutex);
+
+	if (!cm._ready.empty())
 	{
-		std::unique_lock lock(cm._readyMutex);
-
-		if (!cm._conditionVariable.wait_for(lock, std::chrono::seconds(1), [&cm]{return !cm._ready.empty();}))
-		{
-			continue;
-		}
-
-		addr = std::move(cm._ready.front());
+		auto addr = std::move(cm._ready.front());
 		cm._ready.pop();
-
 		return std::move(addr);
 	}
 

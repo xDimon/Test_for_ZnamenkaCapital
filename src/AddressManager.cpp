@@ -12,6 +12,7 @@
 #include <sstream>
 #include <algorithm>
 #include "ConnectionManager.hpp"
+#include "WorkerManager.hpp"
 
 AddressManager AddressManager::_instance;
 
@@ -60,9 +61,9 @@ void AddressManager::load(const std::string& filepath)
 
 		uint32_t ip =
 			(static_cast<uint32_t>(octet[0]) << 24u) |
-				(static_cast<uint32_t>(octet[1]) << 16u) |
-				(static_cast<uint32_t>(octet[2]) << 8u) |
-				static_cast<uint32_t>(octet[3]);
+			(static_cast<uint32_t>(octet[1]) << 16u) |
+			(static_cast<uint32_t>(octet[2]) << 8u) |
+			static_cast<uint32_t>(octet[3]);
 
 		if (auto [_, ok] = uniq.emplace(ip, port); ok)
 		{
@@ -86,33 +87,19 @@ void AddressManager::start()
 std::shared_ptr<Address> AddressManager::get()
 {
 	auto& am = getInstance();
-	for(;;)
+
+	std::lock_guard lg(am._mutex);
+
+	if (!am._deque.empty() &&
+		am._deque.front()->timestamp() + std::chrono::seconds(1) > std::chrono::system_clock::now()
+	)
 	{
-		std::unique_lock lock(am._mutex);
-
-		if (!am._conditionVariable.wait_for(
-			lock,
-			std::chrono::milliseconds(30),
-			[&am]{
-				auto r =  !am._deque.empty() &&
-				am._deque.front()->timestamp() + std::chrono::seconds(1) <= std::chrono::system_clock::now();
-				return r;
-			}
-		))
-		{
-			continue;
-		}
-
-		std::lock_guard lg(am._mutex);
-		if (am._deque.empty())
-		{
-			return {};
-		}
-
 		auto addr = std::move(am._deque.front());
 		am._deque.pop_front();
-		return addr;
+		return std::move(addr);
 	}
+
+	return {};
 }
 
 void AddressManager::put(std::shared_ptr<Address>&& addr)
@@ -120,5 +107,5 @@ void AddressManager::put(std::shared_ptr<Address>&& addr)
 	auto& am = getInstance();
 	std::lock_guard lg(am._mutex);
 	am._deque.emplace_back(std::move(addr));
-	am._conditionVariable.notify_one();
+	WorkerManager::notify();
 }

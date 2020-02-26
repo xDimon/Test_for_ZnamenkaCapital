@@ -9,14 +9,13 @@
 #pragma once
 
 #include <mutex>
-#include <condition_variable>
 #include <deque>
+#include <memory>
 #include "Address.hpp"
 
 class AddressManager final
 {
 	std::mutex _mutex;
-	std::condition_variable _conditionVariable;
 	std::deque<std::shared_ptr<Address>> _deque;
 
 public:

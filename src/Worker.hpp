@@ -15,7 +15,7 @@ class Worker final
 	std::thread _thread;
 
 public:
-	Worker(Worker&&) noexcept = delete; // Move-constructor
+	Worker(Worker&&) noexcept = default; // Move-constructor
 	Worker(const Worker&) = delete; // Copy-constructor
 	Worker& operator=(Worker&&) noexcept = delete; // Move-assignment
 	Worker& operator=(Worker const&) = delete; // Copy-assignment

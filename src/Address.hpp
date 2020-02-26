@@ -56,7 +56,7 @@ public:
 		return _ts;
 	}
 
-	void trying()
+	void updateTimestamp()
 	{
 		_ts = std::chrono::system_clock::now();
 	}

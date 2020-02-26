@@ -12,6 +12,7 @@
 #include "AddressManager.hpp"
 #include "ConnectionManager.hpp"
 #include "Worker.hpp"
+#include "WorkerManager.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
 
 	AddressManager::start();
 
-	std::vector<Worker> workers(std::thread::hardware_concurrency());
+	WorkerManager::start();
 
 	ConnectionManager::dispatch();
 }

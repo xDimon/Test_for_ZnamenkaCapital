@@ -12,7 +12,7 @@
 #include <mutex>
 #include <map>
 #include <queue>
-#include <condition_variable>
+#include <memory>
 #include "Address.hpp"
 
 class ConnectionManager final
@@ -27,7 +27,6 @@ class ConnectionManager final
 	std::map<const Address *, const std::shared_ptr<Address>> _all;
 
 	std::mutex _readyMutex;
-	std::condition_variable _conditionVariable;
 	std::queue<std::shared_ptr<Address>> _ready;
 
 public:

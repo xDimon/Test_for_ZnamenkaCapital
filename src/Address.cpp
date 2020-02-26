@@ -7,6 +7,7 @@
 // Address.cpp
 
 #include "Address.hpp"
+#include "Log.hpp"
 #include <arpa/inet.h>
 #include <iostream>
 #include <unistd.h>
@@ -14,6 +15,8 @@
 
 void Address::report()
 {
+	_prevStatus = _currStatus;
+
 	char ip[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, &_sockaddr.sin_addr.s_addr, ip, sizeof(ip));
 	uint16_t port = htobe16(_sockaddr.sin_port);
@@ -28,9 +31,6 @@ void Address::report()
 //		std::cout << oss.str();
 //		std::cout.flush();
 
-		close(sock);
-		sock = -1;
-		_prevStatus = _currStatus;
 		_currStatus = Up;
 		_ts = std::chrono::system_clock::now();
 	}
@@ -41,11 +41,11 @@ void Address::report()
 //		std::cout << oss.str();
 //		std::cout.flush();
 
-		close(sock);
-		sock = -1;
-		_prevStatus = _currStatus;
 		_currStatus = Down;
 	}
+
+	close(sock);
+	sock = -1;
 
 	if (_prevStatus != _currStatus)
 	{
@@ -64,8 +64,7 @@ void Address::report()
 			<< ((_currStatus == Address::Status::Down) ? "down" :
 			    (_currStatus == Address::Status::Up) ? "up" : "unknown")
 			<< '\n';
-		std::cout << oss.str();
-		std::cout.flush();
+		Log::stream() << oss.str() << std::flush;
 	}
 
 	_ts = std::chrono::system_clock::now();
